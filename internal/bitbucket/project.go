@@ -7,10 +7,10 @@ import (
 
 // ProjectService provides operations around bitbucket projects
 type ProjectService interface {
-	GetProject(context.Context, *GetProjectRequest) (*Project, error)
-	CreateProject(context.Context, *CreateProjectRequest) (*Project, error)
-	DeleteProject(context.Context, *DeleteProjectRequest) error
-	UpdateProject(context.Context, *UpdateProjectRequest) (*Project, error)
+	Get(context.Context, *GetProjectRequest) (*Project, error)
+	Create(context.Context, *CreateProjectRequest) (*Project, error)
+	Update(context.Context, *UpdateProjectRequest) (*Project, error)
+	Delete(context.Context, *DeleteProjectRequest) error
 }
 
 type projectService struct {
@@ -33,7 +33,7 @@ type GetProjectRequest struct {
 	Key string `json:"key"`
 }
 
-func (ps *projectService) GetProject(ctx context.Context, getReq *GetProjectRequest) (*Project, error) {
+func (ps *projectService) Get(ctx context.Context, getReq *GetProjectRequest) (*Project, error) {
 	req, err := ps.client.newRequest("GET", fmt.Sprintf("projects/%s", getReq.Key), nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request for getting projects: %w", err)
@@ -55,7 +55,7 @@ type CreateProjectRequest struct {
 	Public      bool   `json:"public,omitempty"`
 }
 
-func (ps *projectService) CreateProject(ctx context.Context, createReq *CreateProjectRequest) (*Project, error) {
+func (ps *projectService) Create(ctx context.Context, createReq *CreateProjectRequest) (*Project, error) {
 	req, err := ps.client.newRequest("POST", "projects", createReq)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request for creating project: %w", err)
@@ -75,7 +75,7 @@ type DeleteProjectRequest struct {
 	Key string `json:"key"`
 }
 
-func (ps *projectService) DeleteProject(ctx context.Context, deleteReq *DeleteProjectRequest) error {
+func (ps *projectService) Delete(ctx context.Context, deleteReq *DeleteProjectRequest) error {
 	req, err := ps.client.newRequest("DELETE", fmt.Sprintf("projects/%s", deleteReq.Key), nil)
 	if err != nil {
 		return fmt.Errorf("error creating request for deleting project: %w", err)
@@ -96,7 +96,7 @@ type UpdateProjectRequest struct {
 	Public      bool   `json:"public,omitempty"`
 }
 
-func (ps *projectService) UpdateProject(ctx context.Context, updateReq *UpdateProjectRequest) (*Project, error) {
+func (ps *projectService) Update(ctx context.Context, updateReq *UpdateProjectRequest) (*Project, error) {
 	req, err := ps.client.newRequest("PUT", fmt.Sprintf("projects/%s", updateReq.Key), updateReq)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request for updating project: %w", err)

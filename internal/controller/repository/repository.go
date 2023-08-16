@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package project
+package repository
 
 import (
 	"context"
@@ -22,6 +22,11 @@ import (
 	"log"
 
 	xpv1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"github.com/crossplane/crossplane-runtime/pkg/connection"
 	"github.com/crossplane/crossplane-runtime/pkg/controller"
 	"github.com/crossplane/crossplane-runtime/pkg/event"
@@ -29,29 +34,25 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/reconciler/managed"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
-	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/MrVinkel/provider-bitbucketserver/apis/project/v1alpha1"
+	"github.com/MrVinkel/provider-bitbucketserver/apis/repository/v1alpha1"
 	apisv1alpha1 "github.com/MrVinkel/provider-bitbucketserver/apis/v1alpha1"
 	"github.com/MrVinkel/provider-bitbucketserver/internal/bitbucket"
 	"github.com/MrVinkel/provider-bitbucketserver/internal/controller/features"
 )
 
 const (
-	errNotProject   = "managed resource is not a Project custom resource"
-	errTrackPCUsage = "cannot track ProviderConfig usage"
-	errGetPC        = "cannot get ProviderConfig"
-	errGetCreds     = "cannot get credentials"
+	errNotRepository = "managed resource is not a Repository custom resource"
+	errTrackPCUsage  = "cannot track ProviderConfig usage"
+	errGetPC         = "cannot get ProviderConfig"
+	errGetCreds      = "cannot get credentials"
 
 	errNewClient = "cannot create new Service"
 )
 
 // A BitbucketService provides operations against bitbucket
 var (
-	newBitbucketService = func(baseURL string, creds []byte) (*bitbucket.BitBucketService, error) {
+	bitbucketService = func(baseURL string, creds []byte) (*bitbucket.BitBucketService, error) {
 		client, err := bitbucket.NewClient(baseURL, string(creds))
 		if err != nil {
 			// crash if we get an error setting up client
@@ -66,10 +67,9 @@ var (
 	}
 )
 
-// Setup adds a controller that reconciles Project managed resources.
+// Setup adds a controller that reconciles Repository managed resources.
 func Setup(mgr ctrl.Manager, o controller.Options) error {
-	log.Printf("Setting up controller for %s\n", v1alpha1.ProjectGroupKind)
-	name := managed.ControllerName(v1alpha1.ProjectGroupKind)
+	name := managed.ControllerName(v1alpha1.RepositoryGroupKind)
 
 	cps := []managed.ConnectionPublisher{managed.NewAPISecretPublisher(mgr.GetClient(), mgr.GetScheme())}
 	if o.Features.Enabled(features.EnableAlphaExternalSecretStores) {
@@ -77,21 +77,19 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 	}
 
 	r := managed.NewReconciler(mgr,
-		resource.ManagedKind(v1alpha1.ProjectGroupVersionKind),
+		resource.ManagedKind(v1alpha1.RepositoryGroupVersionKind),
 		managed.WithExternalConnecter(&connector{
 			kube:         mgr.GetClient(),
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-			newServiceFn: newBitbucketService}),
+			newServiceFn: bitbucketService}),
 		managed.WithLogger(o.Logger.WithValues("controller", name)),
-		managed.WithPollInterval(o.PollInterval),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
 		managed.WithConnectionPublishers(cps...))
 
-	log.Printf("Finished setting up controller for %s\n", v1alpha1.ProjectGroupKind)
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
-		For(&v1alpha1.Project{}).
+		For(&v1alpha1.Repository{}).
 		Complete(ratelimiter.NewReconciler(name, r, o.GlobalRateLimiter))
 }
 
@@ -109,9 +107,9 @@ type connector struct {
 // 3. Getting the credentials specified by the ProviderConfig.
 // 4. Using the credentials to form a client.
 func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.ExternalClient, error) {
-	cr, ok := mg.(*v1alpha1.Project)
+	cr, ok := mg.(*v1alpha1.Repository)
 	if !ok {
-		return nil, errors.New(errNotProject)
+		return nil, errors.New(errNotRepository)
 	}
 
 	if err := c.usage.Track(ctx, mg); err != nil {
@@ -145,38 +143,36 @@ type external struct {
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.Project)
+	cr, ok := mg.(*v1alpha1.Repository)
 	if !ok {
-		return managed.ExternalObservation{}, errors.New(errNotProject)
+		return managed.ExternalObservation{}, errors.New(errNotRepository)
 	}
 
-	if meta.GetExternalName(cr) == "" {
-		return managed.ExternalObservation{
-			ResourceExists: false,
-		}, nil
-	}
+	repoName := cr.Spec.ForProvider.Name
+	projectName := cr.Spec.ForProvider.Project
 
-	p, err := c.service.Projects.Get(ctx, &bitbucket.GetProjectRequest{
-		Key: meta.GetExternalName(cr),
+	repository, err := c.service.Repositories.Get(ctx, &bitbucket.Repository{
+		Name:    repoName,
+		Project: projectName,
 	})
 	if err != nil {
 		if errors.Is(err, bitbucket.ErrNotFound) {
-			log.Printf("Project with key (%s) does not exist\n", meta.GetExternalName(cr))
+			log.Printf("Repository (%s) does not exist in (%s)\n", repoName, projectName)
 			return managed.ExternalObservation{ResourceExists: false}, nil
 		}
-		return managed.ExternalObservation{}, errors.Wrap(err, "error fetching Bitbucket project")
+		return managed.ExternalObservation{}, errors.Wrap(err, "error fetching Bitbucket repository")
 	}
 
 	cr.SetConditions(xpv1.Available())
 
-	if p.Description != cr.Spec.ForProvider.Description || p.Public != cr.Spec.ForProvider.Public {
+	if repository.Description != cr.Spec.ForProvider.Description {
 		return managed.ExternalObservation{
 			ResourceExists:   true,
 			ResourceUpToDate: false,
 		}, nil
 	}
 
-	cr.Status.AtProvider.ID = p.ID
+	cr.Status.AtProvider.ID = repository.ID
 
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
@@ -196,77 +192,77 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 }
 
 func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
-	cr, ok := mg.(*v1alpha1.Project)
+	cr, ok := mg.(*v1alpha1.Repository)
 	if !ok {
-		return managed.ExternalCreation{}, errors.New(errNotProject)
+		return managed.ExternalCreation{}, errors.New(errNotRepository)
 	}
 
 	cr.SetConditions(xpv1.Creating())
 
-	log.Printf("Attempting to create Project %s\n", cr.Name)
-
-	createReq := &bitbucket.CreateProjectRequest{
-		Name:        cr.Name,
-		Key:         cr.Spec.ForProvider.Key,
+	repoToCreate := &bitbucket.Repository{
+		Name:        cr.Spec.ForProvider.Name,
+		Project:     cr.Spec.ForProvider.Project,
 		Description: cr.Spec.ForProvider.Description,
-		Public:      cr.Spec.ForProvider.Public,
 	}
 
-	p, err := c.service.Projects.Create(ctx, createReq)
+	log.Printf("Attempting to create Repository %+v\n", repoToCreate)
+
+	repository, err := c.service.Repositories.Create(ctx, repoToCreate)
 	if err != nil {
 		log.Println(err)
 		return managed.ExternalCreation{}, err
 	}
-	log.Printf("Finished creating Project %+v\n", p)
-	meta.SetExternalName(cr, fmt.Sprint(p.Key))
+	log.Printf("Finished creating repository %+v\n", repository)
+	meta.SetExternalName(cr, fmt.Sprint(repository.Name))
 
-	return managed.ExternalCreation{ConnectionDetails: managed.ConnectionDetails{}}, nil
+	return managed.ExternalCreation{
+		// Optionally return any details that may be required to connect to the
+		// external resource. These will be stored as the connection secret.
+		ConnectionDetails: managed.ConnectionDetails{},
+	}, nil
 }
 
 func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.ExternalUpdate, error) {
-	cr, ok := mg.(*v1alpha1.Project)
+	cr, ok := mg.(*v1alpha1.Repository)
 	if !ok {
-		return managed.ExternalUpdate{}, errors.New(errNotProject)
+		return managed.ExternalUpdate{}, errors.New(errNotRepository)
 	}
 
-	log.Printf("Attempting to update Project %s\n", cr.Name)
+	log.Printf("Attempting to update repository %s\n", cr.Name)
 
-	updateReq := &bitbucket.UpdateProjectRequest{
-		Key:         cr.Spec.ForProvider.Key,
+	repoToUpdate := &bitbucket.Repository{
+		Name:        cr.Spec.ForProvider.Name,
+		Project:     cr.Spec.ForProvider.Project,
 		Description: cr.Spec.ForProvider.Description,
-		Public:      cr.Spec.ForProvider.Public,
 	}
 
-	p, err := c.service.Projects.Update(ctx, updateReq)
+	repo, err := c.service.Repositories.Update(ctx, repoToUpdate)
 	if err != nil {
 		log.Println(err)
 		return managed.ExternalUpdate{}, err
 	}
 
-	log.Printf("Finished updating Project %+v\n", p)
+	log.Printf("Finished updating repository %+v\n", repo)
 
-	return managed.ExternalUpdate{ConnectionDetails: managed.ConnectionDetails{}}, nil
+	return managed.ExternalUpdate{
+		// Optionally return any details that may be required to connect to the
+		// external resource. These will be stored as the connection secret.
+		ConnectionDetails: managed.ConnectionDetails{},
+	}, nil
 }
 
 func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
-	cr, ok := mg.(*v1alpha1.Project)
+	cr, ok := mg.(*v1alpha1.Repository)
 	if !ok {
-		return errors.New(errNotProject)
+		return errors.New(errNotRepository)
 	}
 
-	log.Printf("Attempting to delete Project %s\n", cr.Name)
+	log.Printf("Attempting to delete repository %s\n", cr.Spec.ForProvider.Name)
 
 	cr.SetConditions(xpv1.Deleting())
 
-	err := c.service.Projects.Delete(ctx, &bitbucket.DeleteProjectRequest{
-		Key: cr.Spec.ForProvider.Key,
+	return c.service.Repositories.Delete(ctx, &bitbucket.Repository{
+		Name:    cr.Spec.ForProvider.Name,
+		Project: cr.Spec.ForProvider.Project,
 	})
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-
-	log.Printf("Finished deleting Project %s\n", cr.Name)
-
-	return nil
 }

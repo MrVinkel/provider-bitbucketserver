@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -28,8 +29,6 @@ type Client struct {
 
 	// base URL for the bitbucket server + apiPath
 	baseURL *url.URL
-
-	Projects ProjectService
 }
 
 var (
@@ -45,6 +44,7 @@ var (
 
 // NewClient creates a new instance of the bitbucket client
 func NewClient(baseURL string, base64creds string) (*Client, error) {
+	baseURL = strings.TrimRight(baseURL, "/")
 	pBaseURL, err := url.Parse(fmt.Sprintf("%s%s", baseURL, apiPath))
 	if err != nil {
 		return nil, err
@@ -53,15 +53,13 @@ func NewClient(baseURL string, base64creds string) (*Client, error) {
 	c := &Client{
 		baseURL: pBaseURL,
 		client:  &http.Client{Timeout: time.Second * 10},
-		headers: map[string]string{"Authorization": "Basic " + base64creds},
+		headers: map[string]string{"Authorization": fmt.Sprintf("Bearer %s", base64creds)},
 	}
 
 	err = c.ping()
 	if err != nil {
 		return nil, fmt.Errorf("error creating bitbucket client: %w", err)
 	}
-
-	c.Projects = &projectService{client: c}
 
 	return c, nil
 }
@@ -75,7 +73,7 @@ func (c *Client) ping() error {
 
 	err = c.do(context.Background(), req, nil)
 	if err != nil {
-		return fmt.Errorf("error fetching projects: %w", err)
+		return fmt.Errorf("error fetching projects at %s: %w", req.URL.String(), err)
 	}
 	return nil
 }

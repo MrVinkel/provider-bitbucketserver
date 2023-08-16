@@ -36,10 +36,10 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/ratelimiter"
 	"github.com/crossplane/crossplane-runtime/pkg/resource"
 
-	"github.com/tomas-mota/provider-bitbucketserver/apis"
-	"github.com/tomas-mota/provider-bitbucketserver/apis/v1alpha1"
-	bitbucketserver "github.com/tomas-mota/provider-bitbucketserver/internal/controller"
-	"github.com/tomas-mota/provider-bitbucketserver/internal/controller/features"
+	"github.com/MrVinkel/provider-bitbucketserver/apis"
+	"github.com/MrVinkel/provider-bitbucketserver/apis/v1alpha1"
+	bitbucketserver "github.com/MrVinkel/provider-bitbucketserver/internal/controller"
+	"github.com/MrVinkel/provider-bitbucketserver/internal/controller/features"
 )
 
 func main() {

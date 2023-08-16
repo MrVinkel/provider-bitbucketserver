@@ -1,7 +1,7 @@
 # ====================================================================================
 # Setup Project
 PROJECT_NAME := provider-bitbucketserver
-PROJECT_REPO := github.com/tomas-mota/$(PROJECT_NAME)
+PROJECT_REPO := github.com/MrVinkel/$(PROJECT_NAME)
 
 PLATFORMS ?= linux_amd64 linux_arm64
 -include build/makelib/common.mk

@@ -1,0 +1,12 @@
+apiVersion: repository.bitbucketserver.crossplane.io/v1alpha1
+kind: Repository
+metadata:
+  name: bitbucket-provider-test-repo
+spec:
+  deletionPolicy: Orphan
+  forProvider:
+    name: bitbucket-provider-test-repo
+    project: devx
+    description: "test project created from provider-bitbucket"
+  providerConfigRef:
+    name: mybitbucketserver
