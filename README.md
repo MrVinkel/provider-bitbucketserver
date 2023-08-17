@@ -36,3 +36,8 @@ Manages:
    This will start a k8s cluster and start the provider (you can ctrl+c the provider and rerun it with `make run` without having to restart the cluster)
 2. Edit or add the yaml files under `examples` to configure the provider and to make example resources.
 3. Apply the yaml files with `kubectl apply -f examples/<yaml file>` and see how the provider responds in the log.
+
+### Release
+
+1. Create a tag `git tag v1.2.3` and push it `git push origin v1.2.3`
+2. Run the CI pipeline manual on github to promote it to docker hub
