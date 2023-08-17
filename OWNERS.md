@@ -2,4 +2,4 @@
 
 ## Maintainers
 
-* Tomás Mota ([tomas-mota](https://github.com/tomas-mota))
+* Martin Vinkel ([mrvinkel](https://github.com/mrvinkel))
