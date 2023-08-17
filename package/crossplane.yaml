@@ -10,4 +10,4 @@ metadata:
 
 spec:
   controller:
-    image: registry.hub.docker.com/vinkel/provider-bitbucketserver-controller:0.0.1
+    image: docker.io/vinkel/provider-bitbucketserver-controller:0.0.1

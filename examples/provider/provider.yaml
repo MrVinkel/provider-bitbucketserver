@@ -12,6 +12,6 @@ kind: Provider
 metadata:
   name: provider-bitbucketserver
 spec:
-  package: registry.hub.docker.com/vinkel/provider-bitbucketserver-amd64:v0.0.0-36.g7a4d1bb
+  package: docker.io/vinkel/provider-bitbucketserver-amd64:v0.0.0-36.g7a4d1bb
   # controllerConfigRef:
   #   name: debug-config
