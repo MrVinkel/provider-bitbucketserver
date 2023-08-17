@@ -10,9 +10,9 @@ data:
 apiVersion: bitbucketserver.crossplane.io/v1alpha1
 kind: ProviderConfig
 metadata:
-  name: mybitbucketserver
+  name: provider-bitbucketserver-config
 spec:
-  baseURL: https://my-bitbucket-server.com
+  baseurl: https://my-bitbucket-server.com
   credentials:
     source: Secret
     secretRef:

@@ -1,17 +1,8 @@
-# # Setting up a provider in a cluster with crossplane installed can be done in this way
-# apiVersion: pkg.crossplane.io/v1alpha1
-# kind: ControllerConfig
-# metadata:
-#   name: debug-config
-# spec:
-#   args:
-#     - --debug
-# ---
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
 metadata:
   name: provider-bitbucketserver
 spec:
-  package: docker.io/vinkel/provider-bitbucketserver-amd64:v0.0.0-36.g7a4d1bb
+  package: docker.io/vinkel/provider-bitbucketserver:v0.0.3
   # controllerConfigRef:
   #   name: debug-config

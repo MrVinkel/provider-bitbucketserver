@@ -9,4 +9,4 @@ spec:
     project: devx
     description: "test project created from provider-bitbucket"
   providerConfigRef:
-    name: mybitbucketserver
+    name: provider-bitbucketserver-config
