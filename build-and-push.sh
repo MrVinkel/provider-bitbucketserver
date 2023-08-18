@@ -1,6 +1,7 @@
 #!/bin/bash
 if [ "$#" -ne 1 ]; then
     echo "call with version tag i.e v1.2.3"
+    exit 1
 fi
 
 make
