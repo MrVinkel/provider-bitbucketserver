@@ -3,6 +3,7 @@ package bitbucket
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -49,10 +50,13 @@ func NewClient(baseURL string, base64creds string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 
 	c := &Client{
 		baseURL: pBaseURL,
-		client:  &http.Client{Timeout: time.Second * 10},
+		client:  &http.Client{Timeout: time.Second * 10, Transport: transport},
 		headers: map[string]string{"Authorization": fmt.Sprintf("Bearer %s", base64creds)},
 	}
 
