@@ -67,13 +67,28 @@ spec:
                 properties:
                   description:
                     type: string
+                  groups:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        permission:
+                          type: string
+                      required:
+                      - name
+                      - permission
+                      type: object
+                    type: array
                   name:
                     type: string
                   project:
                     type: string
+                  public:
+                    type: boolean
                 required:
                 - name
                 - project
+                - public
                 type: object
               providerConfigRef:
                 default:

@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   namespace: kube-system
-  name: example-provider-secret
+  name: provider-secret-bitbucketserver
 type: Opaque
 data:
   # credentials: BASE64ENCODED_PROVIDER_CREDS
@@ -10,12 +10,12 @@ data:
 apiVersion: bitbucketserver.crossplane.io/v1alpha1
 kind: ProviderConfig
 metadata:
-  name: provider-bitbucketserver-config
+  name: provider-config-bitbucketserver
 spec:
   baseurl: https://my-bitbucket-server.com
   credentials:
     source: Secret
     secretRef:
       namespace: kube-system
-      name: example-provider-secret
+      name: provider-secret-bitbucketserver
       key: credentials

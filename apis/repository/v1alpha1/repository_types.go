@@ -29,8 +29,16 @@ import (
 type RepositoryParameters struct {
 	Name    string `json:"name"`
 	Project string `json:"project"`
+	Public  bool   `json:"public"`
 	// +optional
 	Description string `json:"description,omitempty"`
+	// +optional
+	Groups []AdGroup `json:"groups,omitempty"`
+}
+
+type AdGroup struct {
+	Name       string `json:"name"`
+	Permission string `json:"permission"`
 }
 
 // RepositoryObservation are the observable fields of a Repository.

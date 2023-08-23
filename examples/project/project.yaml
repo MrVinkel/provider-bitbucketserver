@@ -8,4 +8,4 @@ spec:
     public: true
     description: "test project created from provider-bitbucket"
   providerConfigRef:
-    name: mybitbucketserver
+    name: provider-config-bitbucketserver
