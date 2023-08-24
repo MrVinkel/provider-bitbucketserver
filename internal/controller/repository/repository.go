@@ -250,7 +250,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 			Permission: g.Permission,
 		}
 		log.Printf("Creating permission %+v for repository %+v\n", group, repository)
-		err := c.service.Repositories.AddGroup(ctx, repository, &group)
+		err = c.service.Repositories.AddGroup(ctx, repository, &group)
 		if err != nil {
 			log.Printf("Error creating permission: %v", err)
 			return managed.ExternalCreation{}, err
@@ -296,7 +296,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	// Update all groups
 	for _, group := range cr.Spec.ForProvider.Groups {
 		log.Printf("Updating permission %+v for repository %+v\n", group, repo)
-		err := c.service.Repositories.AddGroup(ctx, repo, &bitbucket.Group{Name: group.Name, Permission: group.Permission})
+		err = c.service.Repositories.AddGroup(ctx, repo, &bitbucket.Group{Name: group.Name, Permission: group.Permission})
 		if err != nil {
 			return managed.ExternalUpdate{}, err
 		}
@@ -312,7 +312,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 			}
 		}
 		if !found {
-			c.service.Repositories.RevokeGroup(ctx, repo, &group)
+			err = c.service.Repositories.RevokeGroup(ctx, repo, &group)
 			if err != nil {
 				return managed.ExternalUpdate{}, err
 			}

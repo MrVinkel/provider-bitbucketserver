@@ -6,11 +6,11 @@ Manages:
 
 - Projects
 - Repositories
+- Group permissions on repositories
 
 ## TODO
 
 - Add Test scenarios
-- project access mapping to groups
 
 ## How to
 
