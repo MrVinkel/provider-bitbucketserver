@@ -150,6 +150,10 @@ func (c *Client) handleResponse(res *http.Response, v interface{}) error {
 		return ErrConflict
 	}
 
+	if res.StatusCode >= http.StatusBadRequest {
+		return fmt.Errorf("%s returned %d", res.Request.URL, res.StatusCode)
+	}
+
 	// this means we don't care about unmarshaling the response body into v
 	if v == nil || res.StatusCode == http.StatusNoContent {
 		return nil

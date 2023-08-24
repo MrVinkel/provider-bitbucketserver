@@ -7,6 +7,16 @@ spec:
   forProvider:
     name: bitbucket-provider-test-repo
     project: devx
+    public: false
+    # optional
     description: "test project created from provider-bitbucket"
+    # optional
+    groups:
+      - name: my_ad_admin_group
+        permission: REPO_ADMIN
+      - name: my_ad_write_group
+        permission: REPO_WRITE
+      - name: my_ad_read_group
+        permission: REPO_READ
   providerConfigRef:
-    name: provider-bitbucketserver-config
+    name: provider-config-bitbucketserver

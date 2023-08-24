@@ -164,7 +164,9 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 
 	cr.SetConditions(xpv1.Available())
+	cr.Status.AtProvider.ID = repository.ID
 
+	// check description is up-to-date
 	if repository.Description != cr.Spec.ForProvider.Description {
 		return managed.ExternalObservation{
 			ResourceExists:   true,
@@ -172,7 +174,14 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		}, nil
 	}
 
-	cr.Status.AtProvider.ID = repository.ID
+	// check if groups are up-to-date
+	groups, err := c.service.Repositories.GetGroups(ctx, repository)
+	if !groupsEqual(cr.Spec.ForProvider.Groups, groups) {
+		return managed.ExternalObservation{
+			ResourceExists:   true,
+			ResourceUpToDate: false,
+		}, nil
+	}
 
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
@@ -189,6 +198,28 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 		// resource. These will be stored as the connection secret.
 		ConnectionDetails: managed.ConnectionDetails{},
 	}, nil
+}
+
+func groupsEqual(crGroups []v1alpha1.AdGroup, groups []bitbucket.Group) bool {
+	if len(crGroups) != len(groups) {
+		return false
+	}
+
+	for _, crGroup := range crGroups {
+		found := false
+
+		for _, group := range groups {
+			if crGroup.Name == group.Name && crGroup.Permission == group.Permission {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return false
+		}
+	}
+	return true
 }
 
 func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.ExternalCreation, error) {
@@ -212,7 +243,21 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		log.Println(err)
 		return managed.ExternalCreation{}, err
 	}
+
+	for _, g := range cr.Spec.ForProvider.Groups {
+		group := bitbucket.Group{
+			Name:       g.Name,
+			Permission: g.Permission,
+		}
+		log.Printf("Creating permission %+v for repository %+v\n", group, repository)
+		err := c.service.Repositories.AddGroup(ctx, repository, &group)
+		if err != nil {
+			log.Printf("Error creating permission: %v", err)
+			return managed.ExternalCreation{}, err
+		}
+	}
 	log.Printf("Finished creating repository %+v\n", repository)
+
 	meta.SetExternalName(cr, fmt.Sprint(repository.Name))
 
 	return managed.ExternalCreation{
@@ -240,6 +285,38 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 	if err != nil {
 		log.Println(err)
 		return managed.ExternalUpdate{}, err
+	}
+
+	groups, err := c.service.Repositories.GetGroups(ctx, repo)
+	if err != nil {
+		log.Println(err)
+		return managed.ExternalUpdate{}, err
+	}
+
+	// Update all groups
+	for _, group := range cr.Spec.ForProvider.Groups {
+		log.Printf("Updating permission %+v for repository %+v\n", group, repo)
+		err := c.service.Repositories.AddGroup(ctx, repo, &bitbucket.Group{Name: group.Name, Permission: group.Permission})
+		if err != nil {
+			return managed.ExternalUpdate{}, err
+		}
+	}
+
+	// Delete unknown groups
+	for _, group := range groups {
+		found := false
+		for _, crGroup := range cr.Spec.ForProvider.Groups {
+			if group.Name == crGroup.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			c.service.Repositories.RevokeGroup(ctx, repo, &group)
+			if err != nil {
+				return managed.ExternalUpdate{}, err
+			}
+		}
 	}
 
 	log.Printf("Finished updating repository %+v\n", repo)
