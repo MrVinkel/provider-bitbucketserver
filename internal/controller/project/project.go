@@ -51,8 +51,8 @@ const (
 
 // A BitbucketService provides operations against bitbucket
 var (
-	newBitbucketService = func(baseURL string, creds []byte) (*bitbucket.BitBucketService, error) {
-		client, err := bitbucket.NewClient(baseURL, string(creds))
+	newBitbucketService = func(baseURL string, creds []byte, caCertPath *string) (*bitbucket.BitBucketService, error) {
+		client, err := bitbucket.NewClient(baseURL, string(creds), caCertPath)
 		if err != nil {
 			// crash if we get an error setting up client
 			log.Fatalln(err)
@@ -100,7 +100,7 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 type connector struct {
 	kube         client.Client
 	usage        resource.Tracker
-	newServiceFn func(baseURL string, creds []byte) (*bitbucket.BitBucketService, error)
+	newServiceFn func(baseURL string, creds []byte, caCertPath *string) (*bitbucket.BitBucketService, error)
 }
 
 // Connect typically produces an ExternalClient by:
@@ -129,7 +129,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 		return nil, errors.Wrap(err, errGetCreds)
 	}
 
-	svc, err := c.newServiceFn(pc.Spec.BaseURL, data)
+	svc, err := c.newServiceFn(pc.Spec.BaseURL, data, pc.Spec.CaCertPath)
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}

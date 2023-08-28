@@ -19,3 +19,5 @@ spec:
       namespace: kube-system
       name: provider-secret-bitbucketserver
       key: credentials
+  # mount a cert for the bitbucket http client to trust
+  # ca-cert-path: /certs/ca.crt
