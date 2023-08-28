@@ -31,6 +31,8 @@ type ProviderConfigSpec struct {
 	Credentials ProviderCredentials `json:"credentials"`
 	// Base Url of bitbucket server
 	BaseURL string `json:"baseurl"`
+	// +optional
+	CaCertPath *string `json:"ca-cert-path"`
 }
 
 // ProviderCredentials required to authenticate.

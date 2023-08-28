@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 )
@@ -44,15 +46,14 @@ var (
 )
 
 // NewClient creates a new instance of the bitbucket client
-func NewClient(baseURL string, base64creds string) (*Client, error) {
+func NewClient(baseURL string, base64creds string, caCertPath *string) (*Client, error) {
 	baseURL = strings.TrimRight(baseURL, "/")
 	pBaseURL, err := url.Parse(fmt.Sprintf("%s%s", baseURL, apiPath))
 	if err != nil {
 		return nil, err
 	}
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
+
+	transport := createTransport(caCertPath)
 
 	c := &Client{
 		baseURL: pBaseURL,
@@ -66,6 +67,32 @@ func NewClient(baseURL string, base64creds string) (*Client, error) {
 	}
 
 	return c, nil
+}
+
+func createTransport(caCertPath *string) *http.Transport {
+	rootCAs, _ := x509.SystemCertPool()
+	if rootCAs == nil {
+		rootCAs = x509.NewCertPool()
+	}
+
+	if caCertPath == nil || *caCertPath == "" {
+		return &http.Transport{TLSClientConfig: &tls.Config{RootCAs: rootCAs}}
+	}
+
+	_, err := os.Stat(*caCertPath)
+	if !os.IsNotExist(err) {
+		certs, err := os.ReadFile(*caCertPath)
+		if err != nil {
+			fmt.Printf("Failed to read %s: %v\n", *caCertPath, err)
+		}
+		if ok := rootCAs.AppendCertsFromPEM(certs); !ok {
+			fmt.Println("No certs appended, using system certs only")
+		}
+	} else {
+		fmt.Printf("'%s' does not exist\n", *caCertPath)
+	}
+
+	return &http.Transport{TLSClientConfig: &tls.Config{RootCAs: rootCAs}}
 }
 
 // ping is used to check that the client can correctly communicate with the bitbucket api

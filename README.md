@@ -8,10 +8,6 @@ Manages:
 - Repositories
 - Group permissions on repositories
 
-## TODO
-
-- Add Test scenarios
-
 ## How to
 
 ### Add provider resource type

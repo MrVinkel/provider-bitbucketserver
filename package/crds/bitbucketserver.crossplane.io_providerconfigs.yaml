@@ -46,6 +46,8 @@ spec:
               baseurl:
                 description: Base Url of bitbucket server
                 type: string
+              ca-cert-path:
+                type: string
               credentials:
                 description: Credentials required to authenticate to this provider.
                 properties:
