@@ -5,4 +5,4 @@ metadata:
 spec:
   package: docker.io/vinkel/provider-bitbucketserver:v0.0.3
   # controllerConfigRef:
-  #   name: debug-config
+  #   name: controller-config-bitbucketserver

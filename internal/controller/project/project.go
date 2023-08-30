@@ -51,7 +51,7 @@ const (
 
 // A BitbucketService provides operations against bitbucket
 var (
-	newBitbucketService = func(baseURL string, creds []byte, caCertPath *string) (*bitbucket.BitBucketService, error) {
+	bitbucketService = func(baseURL string, creds []byte, caCertPath *string) (*bitbucket.BitBucketService, error) {
 		client, err := bitbucket.NewClient(baseURL, string(creds), caCertPath)
 		if err != nil {
 			// crash if we get an error setting up client
@@ -76,21 +76,27 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 		cps = append(cps, connection.NewDetailsManager(mgr.GetClient(), apisv1alpha1.StoreConfigGroupVersionKind))
 	}
 
-	r := managed.NewReconciler(mgr,
-		resource.ManagedKind(v1alpha1.ProjectGroupVersionKind),
+	opts := []managed.ReconcilerOption{
 		managed.WithExternalConnecter(&connector{
 			kube:         mgr.GetClient(),
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-			newServiceFn: newBitbucketService}),
+			newServiceFn: bitbucketService}),
 		managed.WithLogger(o.Logger.WithValues("controller", name)),
 		managed.WithPollInterval(o.PollInterval),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
-		managed.WithConnectionPublishers(cps...))
+		managed.WithConnectionPublishers(cps...),
+	}
 
-	log.Printf("Finished setting up controller for %s\n", v1alpha1.ProjectGroupKind)
+	if o.Features.Enabled(features.EnableAlphaManagementPolicies) {
+		opts = append(opts, managed.WithManagementPolicies())
+	}
+
+	r := managed.NewReconciler(mgr, resource.ManagedKind(v1alpha1.ProjectGroupVersionKind), opts...)
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
+		WithEventFilter(resource.DesiredStateChanged()).
 		For(&v1alpha1.Project{}).
 		Complete(ratelimiter.NewReconciler(name, r, o.GlobalRateLimiter))
 }

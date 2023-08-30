@@ -30,9 +30,22 @@ type RepositoryParameters struct {
 	Name    string `json:"name"`
 	Project string `json:"project"`
 	Public  bool   `json:"public"`
-	// +optional
+	// +kubebuilder:validation:Optional
 	Description string `json:"description,omitempty"`
-	// +optional
+	// +kubebuilder:validation:Optional
+	Groups []AdGroup `json:"groups,omitempty"`
+}
+
+type RepositoryInitParameters struct {
+	// +kubebuilder:validation:Optional
+	Name string `json:"name"`
+	// +kubebuilder:validation:Optional
+	Project string `json:"project"`
+	// +kubebuilder:validation:Optional
+	Public bool `json:"public"`
+	// +kubebuilder:validation:Optional
+	Description string `json:"description,omitempty"`
+	// +kubebuilder:validation:Optional
 	Groups []AdGroup `json:"groups,omitempty"`
 }
 
@@ -49,7 +62,8 @@ type RepositoryObservation struct {
 // A RepositorySpec defines the desired state of a Repository.
 type RepositorySpec struct {
 	xpv1.ResourceSpec `json:",inline"`
-	ForProvider       RepositoryParameters `json:"forProvider"`
+	ForProvider       RepositoryParameters     `json:"forProvider"`
+	InitProvider      RepositoryInitParameters `json:"initProvider,omitempty"`
 }
 
 // A RepositoryStatus represents the observed state of a Repository.
