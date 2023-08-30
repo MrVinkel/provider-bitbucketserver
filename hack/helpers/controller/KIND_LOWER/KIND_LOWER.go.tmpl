@@ -69,20 +69,14 @@ func Setup(mgr ctrl.Manager, o controller.Options) error {
 			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
 			newServiceFn: newNoOpService}),
 		managed.WithLogger(o.Logger.WithValues("controller", name)),
-<<<<<<< HEAD
-=======
 		managed.WithPollInterval(o.PollInterval),
->>>>>>> upstream/main
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))),
 		managed.WithConnectionPublishers(cps...))
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named(name).
 		WithOptions(o.ForControllerRuntime()).
-<<<<<<< HEAD
-=======
 		WithEventFilter(resource.DesiredStateChanged()).
->>>>>>> upstream/main
 		For(&v1alpha1.{{ .Env.KIND }}{}).
 		Complete(ratelimiter.NewReconciler(name, r, o.GlobalRateLimiter))
 }
