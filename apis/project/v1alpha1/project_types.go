@@ -28,9 +28,18 @@ import (
 // ProjectParameters are the configurable fields of a Project.
 type ProjectParameters struct {
 	Key string `json:"key"`
-	// +optional
+	// +kubebuilder:validation:Optional
 	Public bool `json:"public,omitempty"`
-	// +optional
+	// +kubebuilder:validation:Optional
+	Description string `json:"description,omitempty"`
+}
+
+type ProjectInitParameters struct {
+	// +kubebuilder:validation:Optional
+	Key string `json:"key"`
+	// +kubebuilder:validation:Optional
+	Public bool `json:"public,omitempty"`
+	// +kubebuilder:validation:Optional
 	Description string `json:"description,omitempty"`
 }
 
@@ -42,7 +51,8 @@ type ProjectObservation struct {
 // A ProjectSpec defines the desired state of a Project.
 type ProjectSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
-	ForProvider       ProjectParameters `json:"forProvider"`
+	ForProvider       ProjectParameters     `json:"forProvider"`
+	InitProvider      ProjectInitParameters `json:"initProvider"`
 }
 
 // A ProjectStatus represents the observed state of a Project.

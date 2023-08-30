@@ -172,11 +172,6 @@ issues:
       - gosec
       - gas
 
-    # This is an 'errors unhandled' warning that duplicates errcheck.
-    - text: "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv). is not checked"
-      linters:
-      - errcheck
-
   # Independently from option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all
   # excluded by default patterns execute `golangci-lint run --help`.
